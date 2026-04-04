@@ -26,8 +26,8 @@ const App = () => {
       <div className="flex h-screen items-center justify-center bg-slate-900 border-8 border-slate-950">
         <div className="text-center space-y-6">
           <ShieldCheck size={64} className="mx-auto text-indigo-500" />
-          <h2 className="text-3xl font-bold font-display text-white tracking-widest uppercase">Security Logout</h2>
-          <p className="text-slate-400">Your session has been securely terminated.</p>
+          <h2 className="text-3xl font-bold font-display text-white tracking-widest uppercase">Logged Out</h2>
+          <p className="text-slate-400">You have been securely logged out.</p>
           <button onClick={() => setIsAuthenticated(true)} className="btn-primary mt-8">Log Back In</button>
         </div>
       </div>
@@ -50,13 +50,13 @@ const App = () => {
         <nav className="flex-1 space-y-2">
            <NavItem 
              icon={<Activity size={20} />} 
-             label="Global Pulse" 
+             label="Overview" 
              active={activeTab === 'dashboard'} 
              onClick={() => setActiveTab('dashboard')} 
            />
            <NavItem 
              icon={<Users size={20} />} 
-             label="Borrower Intelligence" 
+             label="Borrower Profiles" 
              active={activeTab === 'profile'} 
              onClick={() => setActiveTab('profile')} 
            />
@@ -68,7 +68,7 @@ const App = () => {
            />
            <NavItem 
              icon={<Settings size={20} />} 
-             label="System Config" 
+             label="Settings" 
              active={activeTab === 'config'} 
              onClick={() => setActiveTab('config')} 
            />
@@ -77,7 +77,7 @@ const App = () => {
         <div className="mt-auto space-y-4 pt-6 border-t border-slate-700/50">
            <NavItem 
              icon={<LogOut size={20} />} 
-             label="Security Logout" 
+             label="Logout" 
              onClick={() => setIsAuthenticated(false)} 
            />
         </div>
@@ -100,7 +100,7 @@ const App = () => {
               </button>
               <div className="flex items-center gap-3">
                  <div className="text-right">
-                    <p className="text-xs font-bold text-white uppercase tracking-tighter">Bank Officer</p>
+                    <p className="text-xs font-bold text-white uppercase tracking-tighter">Loan Officer</p>
                     <p className="text-[10px] text-slate-500">M-PESA Branch #09</p>
                  </div>
                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-emerald-500 p-0.5">

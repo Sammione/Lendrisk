@@ -70,7 +70,7 @@ const BorrowerProfile = ({ borrowerData }) => {
               </div>
               
               <div className="flex gap-4 items-center">
-                <span className="risk-score-badge badge-mod border-amber-500/40">Moderate behavioral Risk</span>
+                <span className="risk-score-badge badge-mod border-amber-500/40">Moderate Risk</span>
                 <div className="h-4 w-px bg-slate-700"></div>
                 <span className="flex items-center gap-2 text-emerald-400 text-sm font-bold bg-emerald-500/5 px-3 py-1 rounded-lg border border-emerald-500/10">
                   <CheckCircle size={14} /> KYC Verified
@@ -113,8 +113,8 @@ const BorrowerProfile = ({ borrowerData }) => {
             </div>
             
             <div className="text-right space-y-1">
-               <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Assessment Basis</p>
-               <p className="text-sm font-bold text-slate-200">90-Day Transaction Flow</p>
+               <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Based On</p>
+               <p className="text-sm font-bold text-slate-200">Last 90 Days of Transactions</p>
                <p className="text-xs text-slate-500">Last Synched: Today, 10:45 AM</p>
             </div>
           </div>
@@ -129,9 +129,9 @@ const BorrowerProfile = ({ borrowerData }) => {
               <div>
                 <h3 className="text-xl font-bold text-white flex items-center gap-3">
                   <TrendingUp size={24} className="text-indigo-400" /> 
-                  Monthly Income & Liquidity Regularity
+                  Monthly Income Patterns
                 </h3>
-                <p className="text-slate-500 text-sm mt-1">Verification of consistent inflows versus monthly burn rate.</p>
+                <p className="text-slate-500 text-sm mt-1">Comparing money coming in against money spent.</p>
               </div>
               <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl">
                  <button className="px-4 py-1.5 bg-indigo-500/20 text-indigo-300 text-xs font-bold rounded-lg border border-indigo-400/20">6 Months</button>
@@ -159,14 +159,14 @@ const BorrowerProfile = ({ borrowerData }) => {
             <div className="mt-8 pt-6 border-t border-slate-800/50 flex items-center gap-4">
               <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
               <p className="text-xs font-medium text-amber-500/80 tracking-wide uppercase">
-                Critical Behavioral Anomaly detected in January: 35% income volatility.
+                Warning for January: Income changed by 35%.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8">
              <div className="glass-card">
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Spending Composition</h3>
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-6">How Money is Spent</h3>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -191,7 +191,7 @@ const BorrowerProfile = ({ borrowerData }) => {
                 <div className="absolute top-0 right-0 p-4 opacity-5">
                    <AlertCircle size={120} />
                 </div>
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Active Intelligence Feed</h3>
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-8">Recent Activity Alerts</h3>
                 <div className="space-y-4">
                   <motion.div 
                     initial={{ x: 20, opacity: 0 }}
@@ -200,8 +200,8 @@ const BorrowerProfile = ({ borrowerData }) => {
                   >
                     <Dice5 size={22} className="text-red-500 mt-1" />
                     <div>
-                      <p className="font-bold text-red-100 text-sm">Betting Influx Cluster</p>
-                      <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">System flags sudden 12% spike in non-essential gambling spend over the last 14 days.</p>
+                      <p className="font-bold text-red-100 text-sm">Increased Betting Activity</p>
+                      <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">Noticed a 12% jump in betting spending over the past 2 weeks.</p>
                     </div>
                   </motion.div>
                   <motion.div 
@@ -212,8 +212,8 @@ const BorrowerProfile = ({ borrowerData }) => {
                   >
                     <Clock size={22} className="text-amber-500 mt-1" />
                     <div>
-                      <p className="font-bold text-amber-100 text-sm">Post-Payday Survival Drop</p>
-                      <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">Liquidity survival rate collapsed to 3.2 days after latest salary inflow. High debt-burn suspected.</p>
+                      <p className="font-bold text-amber-100 text-sm">Money Runs Out Quickly</p>
+                      <p className="text-slate-400 text-[11px] mt-1 leading-relaxed">Money ran out just 3 days after getting paid. High debts are likely.</p>
                     </div>
                   </motion.div>
                 </div>
@@ -225,34 +225,34 @@ const BorrowerProfile = ({ borrowerData }) => {
         <div className="col-span-4 space-y-8">
           <div className="glass-card bg-indigo-500/5 border-indigo-500/30 ring-1 ring-white/5 relative group">
             <div className="absolute top-0 right-0 p-4">
-               <div className="px-2 py-1 bg-indigo-500/20 text-[10px] font-black text-indigo-300 rounded tracking-widest uppercase">Verified AI Model v4.1</div>
+               <div className="px-2 py-1 bg-indigo-500/20 text-[10px] font-black text-indigo-300 rounded tracking-widest uppercase">AI Risk Model</div>
             </div>
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
               <AlertCircle size={24} className="text-indigo-400" />
-              Machine Insights
+              AI Insight Summary
             </h3>
             <div className="space-y-6">
               <div className="p-4 bg-white/5 rounded-xl border border-white/5">
                 <p className="text-slate-200 text-sm leading-relaxed font-medium">
-                  "The borrower profile shows an <span className="font-bold text-white underline decoration-amber-500 decoration-2 underline-offset-4">Anomaly Score of 0.72</span>. 
-                  Although base income regularity is 'Grade A', the spending behavior indicates 
-                  significant <span className="text-red-400">behavioral drift</span> in gambling clusters. 
-                  Repayment capacity is stable, but volatility is likely."
+                  "The borrower has a <span className="font-bold text-white underline decoration-amber-500 decoration-2 underline-offset-4">Risk Score of 0.72</span>. 
+                  While their income is steady, their spending shows a worrying increase 
+                  in <span className="text-red-400">betting</span>. 
+                  They can likely repay the loan, but there is some risk involved."
                 </p>
               </div>
               
               <div className="space-y-3">
                  <div className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Income Health</span>
-                    <span className="text-emerald-400 text-xs font-black uppercase bg-emerald-500/10 px-2 py-0.5 rounded">Optimal</span>
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Income Status</span>
+                    <span className="text-emerald-400 text-xs font-black uppercase bg-emerald-500/10 px-2 py-0.5 rounded">Good</span>
                  </div>
                  <div className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Discretionary Ratio</span>
-                    <span className="text-amber-400 text-xs font-black uppercase bg-amber-500/10 px-2 py-0.5 rounded">Concerning</span>
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Spare Cash</span>
+                    <span className="text-amber-400 text-xs font-black uppercase bg-amber-500/10 px-2 py-0.5 rounded">Low</span>
                  </div>
                  <div className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Historical Trust</span>
-                    <span className="text-indigo-400 text-xs font-black uppercase bg-indigo-500/10 px-2 py-0.5 rounded">High Baseline</span>
+                    <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Trust History</span>
+                    <span className="text-indigo-400 text-xs font-black uppercase bg-indigo-500/10 px-2 py-0.5 rounded">High</span>
                  </div>
               </div>
             </div>
@@ -271,10 +271,10 @@ const BorrowerProfile = ({ borrowerData }) => {
             </button>
             <div className="pt-4 flex flex-col items-center gap-3">
                <button className="text-slate-500 text-xs font-black uppercase tracking-widest hover:text-red-500 transition-colors">
-                 Reject with Explanatory Letter
+                 Reject Loan Request
                </button>
                <p className="text-[10px] text-slate-700 font-bold text-center uppercase tracking-tighter">
-                 Decision Support Tool. Final approval resides with Bank Officer.
+                 This tool helps you decide. You make the final choice.
                </p>
             </div>
           </div>

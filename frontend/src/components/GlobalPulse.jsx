@@ -6,8 +6,8 @@ const GlobalPulse = ({ onAddBorrower, onViewProfile }) => {
     <div className="animate-in space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold font-display text-white">Global Pulse</h2>
-          <p className="text-slate-400 mt-1">Real-time overview of the active loan portfolio</p>
+          <h2 className="text-3xl font-bold font-display text-white">Dashboard Overview</h2>
+          <p className="text-slate-400 mt-1">Current view of all ongoing loans</p>
         </div>
         <button 
           onClick={onAddBorrower}
@@ -34,7 +34,7 @@ const GlobalPulse = ({ onAddBorrower, onViewProfile }) => {
             <Activity size={24} className="text-emerald-400" />
           </div>
           <div>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Portfolio Health</p>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Loan Success Rate</p>
             <p className="text-2xl font-bold text-white font-display">94.2%</p>
           </div>
         </div>
@@ -44,7 +44,7 @@ const GlobalPulse = ({ onAddBorrower, onViewProfile }) => {
             <AlertTriangle size={24} className="text-amber-400" />
           </div>
           <div>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Active Drift Alerts</p>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-wider">Recent Warning Alerts</p>
             <p className="text-2xl font-bold text-amber-400 font-display">12 Warning</p>
           </div>
         </div>
@@ -53,7 +53,7 @@ const GlobalPulse = ({ onAddBorrower, onViewProfile }) => {
       {/* Borrowers List */}
       <div className="glass-card">
         <h3 className="text-lg font-bold text-white border-b border-slate-700/50 pb-4 mb-4">
-          Priority Monitoring Queue
+          Borrowers Needing Attention
         </h3>
         
         <div className="space-y-3">
@@ -76,7 +76,7 @@ const GlobalPulse = ({ onAddBorrower, onViewProfile }) => {
                    <p className="text-xs text-slate-500">Moderate Risk</p>
                 </div>
                 <div className="flex items-center gap-2 text-red-400 text-xs font-bold bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20">
-                   <TrendingUp size={14} /> Betting Influx Drift
+                   <TrendingUp size={14} /> Betting Spikes
                 </div>
                 <ChevronRight className="text-slate-500 group-hover:text-white transition-colors" />
              </div>
