@@ -13,7 +13,8 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
     setStep(3); // Connecting to Mono/Okra
     
     try {
-      const response = await fetch("https://lendrisk.onrender.com/api/v1/onboard", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/v1/onboard`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
