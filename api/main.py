@@ -35,6 +35,7 @@ app.add_middleware(
 # --- Schemas ---
 class OnboardRequest(BaseModel):
     name: str
+    phone: str
     loan_amount: float
     mono_code: str = "demo_code_123"
 
@@ -63,7 +64,7 @@ def onboard_borrower(request: OnboardRequest, db: Session = Depends(get_db)):
         borrower = models.Borrower(
             id=borrower_id,
             name=request.name,
-            phone="000-000-0000",
+            phone=request.phone,
             mono_code=request.mono_code
         )
         db.add(borrower)

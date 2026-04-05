@@ -5,6 +5,7 @@ import { CheckCircle, Loader2, Smartphone, ShieldCheck, ArrowRight } from 'lucid
 const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
   const [step, setStep] = useState(1);
   const [borrowerName, setBorrowerName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
 
   if (!isOpen) return null;
@@ -19,6 +20,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: borrowerName,
+          phone: phoneNumber,
           loan_amount: parseFloat(loanAmount),
           mono_code: "okra_token_simulated_8281"
         })
@@ -66,6 +68,16 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                 />
               </div>
               <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number (For SMS Link)</label>
+                <input 
+                  type="tel" 
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="+234 800 000 0000"
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Loan Amount Requested (₦)</label>
                 <input 
                   type="number" 
@@ -100,7 +112,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
               onClick={simulateProcessing}
               className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-semibold transition-colors border border-white/5"
             >
-              Simulate Patient Consent Approval
+              Simulate Borrower Consent Approval
             </button>
           </div>
         )}
