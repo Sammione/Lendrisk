@@ -13,16 +13,27 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
   const sendConsentSMS = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      await fetch(`${apiUrl}/api/v1/send-sms`, {
+      const response = await fetch(`${apiUrl}/api/v1/send-sms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: borrowerName, phone: phoneNumber })
       });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.detail || "Twilio Backend Error");
+      }
+      
+      if (data.status === "simulated") {
+        alert("Warning: Render Backend reported Twilio is not fully configured. Ensure Env variables are added to Render.");
+      }
+      
       setStep(2);
     } catch (e) {
       console.error(e);
-      alert("Failed to send real SMS. Proceeding with simulation.");
-      setStep(2);
+      alert("Failed to send real SMS: " + e.message);
+      setStep(2); // continue to simulation
     }
   };
 
