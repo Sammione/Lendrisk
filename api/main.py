@@ -6,6 +6,7 @@ import sys
 import os
 import pandas as pd
 from datetime import datetime
+from twilio.rest import Client
 
 # Append the ML engine folder to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -39,6 +40,10 @@ class OnboardRequest(BaseModel):
     loan_amount: float
     mono_code: str = "demo_code_123"
 
+class SMSRequest(BaseModel):
+    name: str
+    phone: str
+
 # --- Services Initialization ---
 risk_model = RiskScoringModel()
 llm_explainer = RiskExplainerLLM()
@@ -46,6 +51,35 @@ llm_explainer = RiskExplainerLLM()
 @app.get("/")
 def health_check():
     return {"status": "ok", "service": "Lendrisk Intelligence Engine Connected to DB"}
+
+@app.post("/api/v1/send-sms")
+def send_sms_consent(request: SMSRequest):
+    """
+    Sends a real SMS link to the borrower using Twilio.
+    """
+    try:
+        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        twilio_auth = os.getenv("TWILIO_AUTH_TOKEN")
+        twilio_phone = os.getenv("TWILIO_PHONE_NUMBER")
+
+        if not twilio_sid or not twilio_auth or twilio_phone == "YOUR_TWILIO_PHONE_NUMBER_HERE":
+            # If not completely set up, we just simulate success (don't break the app)
+            return {"status": "simulated", "message": "Twilio not fully configured. Simulated."}
+
+        client = Client(twilio_sid, twilio_auth)
+        
+        # Prepare the consent message
+        msg_body = f"Hello {request.name}. You have a pending Lendrisk application. Please connect your bank to finalize: https://lendrisk.onrender.com/consent"
+
+        # Send the message
+        message = client.messages.create(
+            body=msg_body,
+            from_=twilio_phone,
+            to=request.phone
+        )
+        return {"status": "success", "message_sid": message.sid}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v1/onboard")
 def onboard_borrower(request: OnboardRequest, db: Session = Depends(get_db)):

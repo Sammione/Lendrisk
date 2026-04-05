@@ -10,6 +10,22 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
 
   if (!isOpen) return null;
 
+  const sendConsentSMS = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      await fetch(`${apiUrl}/api/v1/send-sms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: borrowerName, phone: phoneNumber })
+      });
+      setStep(2);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send real SMS. Proceeding with simulation.");
+      setStep(2);
+    }
+  };
+
   const simulateProcessing = async () => {
     setStep(3); // Connecting to Mono/Okra
     
@@ -88,7 +104,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                 />
               </div>
               <button 
-                onClick={() => setStep(2)}
+                onClick={sendConsentSMS}
                 disabled={!borrowerName}
                 className="w-full btn-primary mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
