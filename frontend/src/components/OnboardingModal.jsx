@@ -5,41 +5,41 @@ import { CheckCircle, Loader2, Smartphone, ShieldCheck, ArrowRight } from 'lucid
 const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
   const [step, setStep] = useState(1);
   const [borrowerName, setBorrowerName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [loanAmount, setLoanAmount] = useState('');
 
   if (!isOpen) return null;
 
-  const sendConsentSMS = async () => {
+  const sendConsentEmail = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/v1/send-sms`, {
+      const response = await fetch(`${apiUrl}/api/v1/send-consent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: borrowerName, phone: phoneNumber })
+        body: JSON.stringify({ name: borrowerName, email: email })
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.detail || "Twilio Backend Error");
       }
-      
+
       if (data.status === "simulated") {
-        alert("Warning: Render Backend reported Twilio is not fully configured. Ensure Env variables are added to Render.");
+        alert("Warning: Email service not fully configured. Consent link will be displayed on screen.");
       }
-      
+
       setStep(2);
     } catch (e) {
       console.error(e);
-      alert("Failed to send real SMS: " + e.message);
+      alert("Failed to send email: " + e.message);
       setStep(2); // continue to simulation
     }
   };
 
   const simulateProcessing = async () => {
     setStep(3); // Connecting to Mono/Okra
-    
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
       const response = await fetch(`${apiUrl}/api/v1/onboard`, {
@@ -47,21 +47,21 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: borrowerName,
-          phone: phoneNumber,
+          email: email,
           loan_amount: parseFloat(loanAmount),
           mono_code: "okra_token_simulated_8281"
         })
       });
 
       if (!response.ok) throw new Error("API call failed");
-      
+
       const data = await response.json();
       console.log("Intelligence Engine Result:", data);
 
       setStep(4);
       setTimeout(() => setStep(5), 1000);
       setTimeout(() => onComplete(data), 2000);
-      
+
     } catch (error) {
       console.error(error);
       alert("Failed to connect to Intelligence Engine. Is FastAPI running on port 8000?");
@@ -70,7 +70,7 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
@@ -82,12 +82,12 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
               <h2 className="text-2xl font-bold font-display text-white">Add New Borrower</h2>
               <p className="text-slate-400 text-sm mt-1">Initiate a loan request and behavioral scan.</p>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Borrower Full Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={borrowerName}
                   onChange={(e) => setBorrowerName(e.target.value)}
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -95,31 +95,31 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number (For SMS Link)</label>
-                <input 
-                  type="tel" 
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address (For Consent Link)</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                  placeholder="+234 800 000 0000"
+                  placeholder="tobi@example.com"
                 />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Loan Amount Requested (₦)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={loanAmount}
                   onChange={(e) => setLoanAmount(e.target.value)}
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   placeholder="50,000"
                 />
               </div>
-              <button 
-                onClick={sendConsentSMS}
-                disabled={!borrowerName}
+              <button
+                onClick={sendConsentEmail}
+                disabled={!borrowerName || !email}
                 className="w-full btn-primary mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Consent Request
+                Send Consent Email
               </button>
             </div>
           </div>
@@ -129,18 +129,22 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
         {step === 2 && (
           <div className="text-center space-y-6 animate-in py-8">
             <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto">
-              <Smartphone size={32} className="text-indigo-400 animate-pulse" />
+              <ShieldCheck size={32} className="text-indigo-400 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Awaiting Borrower Consent</h3>
-              <p className="text-slate-400 text-sm mt-2">An SMS link has been sent to {borrowerName} for Mono/Okra bank connection.</p>
+              <h3 className="text-xl font-bold text-white">Consent Link Sent</h3>
+              <p className="text-slate-400 text-sm mt-2">A secure bank connection link has been sent to:</p>
+              <p className="text-indigo-400 font-bold mt-1">{email}</p>
             </div>
-            <button 
-              onClick={simulateProcessing}
-              className="px-6 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-semibold transition-colors border border-white/5"
-            >
-              Simulate Borrower Consent Approval
-            </button>
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
+              <p className="text-xs text-slate-500 mb-2">Or click below to simulate consent (for demo):</p>
+              <button
+                onClick={simulateProcessing}
+                className="px-6 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-xl text-sm font-semibold transition-colors border border-indigo-500/20"
+              >
+                Simulate Bank Connection
+              </button>
+            </div>
           </div>
         )}
 
@@ -148,13 +152,13 @@ const OnboardingModal = ({ isOpen, onClose, onComplete }) => {
         {step >= 3 && step <= 5 && (
           <div className="text-center space-y-8 animate-in py-8">
             <div className="relative w-24 h-24 mx-auto">
-               <svg className="animate-spin text-indigo-500/20 w-full h-full" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" fill="none" strokeWidth="2" stroke="currentColor"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-               </svg>
-               <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-400" size={32} />
+              <svg className="animate-spin text-indigo-500/20 w-full h-full" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" fill="none" strokeWidth="2" stroke="currentColor"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-400" size={32} />
             </div>
-            
+
             <div className="space-y-4">
               <ProcessingStep text="Linking Mono/Okra APIs..." active={step === 3} completed={step > 3} />
               <ProcessingStep text="Pulling 90-day transaction history..." active={step === 4} completed={step > 4} />
