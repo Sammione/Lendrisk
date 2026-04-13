@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -19,6 +20,7 @@ import GlobalPulse from './components/GlobalPulse';
 import OnboardingModal from './components/OnboardingModal';
 import LoanManagement from './components/LoanManagement';
 import SystemConfig from './components/SystemConfig';
+import ConnectBank from './pages/ConnectBank';
 import './styles/index.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -137,209 +139,217 @@ const App = () => {
   }
 
   return (
-    <motion.div
-      className="dashboard-container"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Sidebar */}
-      <motion.aside
-        className="sidebar"
-        initial={{ x: -50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        {/* Logo */}
+    <Routes>
+      {/* Connect Bank Page - standalone, no sidebar */}
+      <Route path="/connect-bank" element={<ConnectBank />} />
+
+      {/* Main Dashboard - with sidebar */}
+      <Route path="*" element={
         <motion.div
-          className="flex items-center gap-3 mb-10 px-2"
-          whileHover={{ scale: 1.02 }}
+          className="dashboard-container"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="relative">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Zap size={20} className="text-white" />
-            </div>
-            <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur-sm -z-10" />
-          </div>
-          <div>
-            <h1 className="text-xl font-black font-display text-white tracking-tight">
-              Lend<span className="text-gradient">risk</span>
-            </h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">Intelligence</p>
-          </div>
-        </motion.div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1">
-          {navItems.map((item, index) => (
-            <NavItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              badge={item.badge}
-              active={activeTab === item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                if (item.id !== 'profile') setSelectedBorrowerId(null);
-              }}
-              delay={index * 0.05}
-            />
-          ))}
-        </nav>
-
-        {/* User Section */}
-        <div className="pt-6 mt-6 border-t border-slate-800/50">
-          <motion.button
-            whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-            onClick={() => setIsAuthenticated(false)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-300 transition-colors"
+          {/* Sidebar */}
+          <motion.aside
+            className="sidebar"
+            initial={{ x: -50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <LogOut size={18} />
-            <span className="text-sm font-medium">Sign Out</span>
-          </motion.button>
-        </div>
-      </motion.aside>
-
-      {/* Main Content */}
-      <main className="main-content">
-        {/* Header */}
-        <motion.header
-          className="flex justify-between items-center mb-8"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          {/* Search */}
-          <motion.div
-            className={`relative transition-all duration-300 ${isSearchFocused ? 'w-[500px]' : 'w-96'}`}
-            layout
-          >
-            <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isSearchFocused ? 'text-indigo-400' : 'text-slate-500'}`}>
-              <Search size={18} />
-            </div>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSearch(searchQuery);
-              }}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              className="input-premium pl-12 pr-4 py-3"
-              placeholder="Search borrowers by ID, name, or phone..."
-            />
-            {isSearchFocused && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500"
-              >
-                Press Enter to search
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* Right Side */}
-          <div className="flex items-center gap-6">
-            {/* Notifications */}
-            <motion.button
-              className="relative p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveTab('alerts')}
+            {/* Logo */}
+            <motion.div
+              className="flex items-center gap-3 mb-10 px-2"
+              whileHover={{ scale: 1.02 }}
             >
-              <Bell size={20} className="text-slate-400" />
-              {alertCount > 0 && (
-                <span className="notification-badge">
-                  {alertCount > 9 ? '9+' : alertCount}
-                </span>
-              )}
-            </motion.button>
-
-            {/* User Profile */}
-            <div className="flex items-center gap-4 pl-6 border-l border-slate-800/50">
-              <div className="text-right">
-                <p className="text-xs font-bold text-white uppercase tracking-tighter">Loan Officer</p>
-                <p className="text-[10px] text-slate-500">M-PESA Branch #09</p>
+              <div className="relative">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                  <Zap size={20} className="text-white" />
+                </div>
+                <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur-sm -z-10" />
               </div>
-              <motion.div
-                className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-0.5"
-                whileHover={{ scale: 1.05 }}
-              >
-                <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center font-bold text-xs uppercase text-white">
-                  BA
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </motion.header>
+              <div>
+                <h1 className="text-xl font-black font-display text-white tracking-tight">
+                  Lend<span className="text-gradient">risk</span>
+                </h1>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Intelligence</p>
+              </div>
+            </motion.div>
 
-        {/* Content Area */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <AnimatePresence mode="wait">
-            {activeTab === 'dashboard' ? (
-              <motion.div key="dashboard" variants={itemVariants}>
-                <GlobalPulse
-                  onAddBorrower={() => setIsModalOpen(true)}
-                  onViewProfile={handleViewProfile}
-                />
-              </motion.div>
-            ) : activeTab === 'profile' ? (
-              <motion.div key="profile" variants={itemVariants}>
-                <BorrowerProfile borrowerId={selectedBorrowerId} />
-              </motion.div>
-            ) : activeTab === 'loans' ? (
-              <motion.div key="loans" variants={itemVariants}>
-                <LoanManagement />
-              </motion.div>
-            ) : activeTab === 'alerts' ? (
-              <motion.div key="alerts" variants={itemVariants}>
-                <AlertCenter onViewBorrower={handleViewProfile} />
-              </motion.div>
-            ) : activeTab === 'config' ? (
-              <motion.div key="config" variants={itemVariants}>
-                <SystemConfig />
-              </motion.div>
-            ) : (
-              <motion.div key="empty" className="h-96 flex flex-col items-center justify-center text-slate-500 space-y-6" variants={itemVariants}>
-                <motion.div
-                  animate={{
-                    rotate: [0, 10, -10, 0],
-                    scale: [1, 1.1, 1]
+            {/* Navigation */}
+            <nav className="flex-1 space-y-1">
+              {navItems.map((item, index) => (
+                <NavItem
+                  key={item.id}
+                  icon={item.icon}
+                  label={item.label}
+                  badge={item.badge}
+                  active={activeTab === item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    if (item.id !== 'profile') setSelectedBorrowerId(null);
                   }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <Activity size={64} className="opacity-20" />
-                </motion.div>
-                <div className="text-center">
-                  <p className="font-display text-2xl font-bold text-slate-400">Coming Soon</p>
-                  <p className="text-sm text-slate-600 mt-2">This module is under active development.</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+                  delay={index * 0.05}
+                />
+              ))}
+            </nav>
 
-        {/* Onboarding Modal */}
-        <OnboardingModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onComplete={(data) => {
-            setIsModalOpen(false);
-            if (data && data.borrower_id) {
-              setSelectedBorrowerId(data.borrower_id);
-              setActiveTab('profile');
-            } else {
-              setActiveTab('dashboard');
-            }
-          }}
-        />
-      </main>
-    </motion.div>
+            {/* User Section */}
+            <div className="pt-6 mt-6 border-t border-slate-800/50">
+              <motion.button
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                onClick={() => setIsAuthenticated(false)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <LogOut size={18} />
+                <span className="text-sm font-medium">Sign Out</span>
+              </motion.button>
+            </div>
+          </motion.aside>
+
+          {/* Main Content */}
+          <main className="main-content">
+            {/* Header */}
+            <motion.header
+              className="flex justify-between items-center mb-8"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              {/* Search */}
+              <motion.div
+                className={`relative transition-all duration-300 ${isSearchFocused ? 'w-[500px]' : 'w-96'}`}
+                layout
+              >
+                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isSearchFocused ? 'text-indigo-400' : 'text-slate-500'}`}>
+                  <Search size={18} />
+                </div>
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSearch(searchQuery);
+                  }}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  className="input-premium pl-12 pr-4 py-3"
+                  placeholder="Search borrowers by ID, name, or phone..."
+                />
+                {isSearchFocused && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500"
+                  >
+                    Press Enter to search
+                  </motion.div>
+                )}
+              </motion.div>
+
+              {/* Right Side */}
+              <div className="flex items-center gap-6">
+                {/* Notifications */}
+                <motion.button
+                  className="relative p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setActiveTab('alerts')}
+                >
+                  <Bell size={20} className="text-slate-400" />
+                  {alertCount > 0 && (
+                    <span className="notification-badge">
+                      {alertCount > 9 ? '9+' : alertCount}
+                    </span>
+                  )}
+                </motion.button>
+
+                {/* User Profile */}
+                <div className="flex items-center gap-4 pl-6 border-l border-slate-800/50">
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-white uppercase tracking-tighter">Loan Officer</p>
+                    <p className="text-[10px] text-slate-500">M-PESA Branch #09</p>
+                  </div>
+                  <motion.div
+                    className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-0.5"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center font-bold text-xs uppercase text-white">
+                      BA
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.header>
+
+            {/* Content Area */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <AnimatePresence mode="wait">
+                {activeTab === 'dashboard' ? (
+                  <motion.div key="dashboard" variants={itemVariants}>
+                    <GlobalPulse
+                      onAddBorrower={() => setIsModalOpen(true)}
+                      onViewProfile={handleViewProfile}
+                    />
+                  </motion.div>
+                ) : activeTab === 'profile' ? (
+                  <motion.div key="profile" variants={itemVariants}>
+                    <BorrowerProfile borrowerId={selectedBorrowerId} />
+                  </motion.div>
+                ) : activeTab === 'loans' ? (
+                  <motion.div key="loans" variants={itemVariants}>
+                    <LoanManagement />
+                  </motion.div>
+                ) : activeTab === 'alerts' ? (
+                  <motion.div key="alerts" variants={itemVariants}>
+                    <AlertCenter onViewBorrower={handleViewProfile} />
+                  </motion.div>
+                ) : activeTab === 'config' ? (
+                  <motion.div key="config" variants={itemVariants}>
+                    <SystemConfig />
+                  </motion.div>
+                ) : (
+                  <motion.div key="empty" className="h-96 flex flex-col items-center justify-center text-slate-500 space-y-6" variants={itemVariants}>
+                    <motion.div
+                      animate={{
+                        rotate: [0, 10, -10, 0],
+                        scale: [1, 1.1, 1]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <Activity size={64} className="opacity-20" />
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="font-display text-2xl font-bold text-slate-400">Coming Soon</p>
+                      <p className="text-sm text-slate-600 mt-2">This module is under active development.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Onboarding Modal */}
+            <OnboardingModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onComplete={(data) => {
+                setIsModalOpen(false);
+                if (data && data.borrower_id) {
+                  setSelectedBorrowerId(data.borrower_id);
+                  setActiveTab('profile');
+                } else {
+                  setActiveTab('dashboard');
+                }
+              }}
+            />
+          </main>
+        </motion.div>
+      } />
+    </Routes>
   );
 };
 

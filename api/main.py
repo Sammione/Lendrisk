@@ -350,8 +350,10 @@ def send_consent_email(request: ConsentRequest):
     Sends a consent email with bank connection link to the borrower using Resend.
     """
     try:
-        # Generate a unique consent link
-        consent_link = f"https://connect.withmono.com/link?ref=lendrisk_{request.email.replace('@', '_')}"
+        # Generate a unique consent link - points to local demo page for simulation
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        consent_token = f"lendrisk_{request.email.replace('@', '_')}_{int(datetime.now().timestamp())}"
+        consent_link = f"{frontend_url}/connect-bank?token={consent_token}&email={request.email}"
         
         # Get Resend configuration
         resend_api_key = os.getenv("RESEND_API_KEY")
