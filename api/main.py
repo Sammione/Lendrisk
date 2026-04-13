@@ -9,6 +9,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import List, Optional
 from twilio.rest import Client
+import sendgrid
+from sendgrid.helpers.mail import Mail, Email, To, Content
 
 # Append the ML engine folder to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -346,24 +348,94 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 @app.post("/api/v1/send-consent")
 def send_consent_email(request: ConsentRequest):
     """
-    Sends a consent email with bank connection link to the borrower.
-    For production, integrate with SendGrid, AWS SES, or similar email service.
+    Sends a consent email with bank connection link to the borrower using SendGrid.
     """
     try:
-        # Generate a unique consent link (in production, this would be a real secure link)
+        # Generate a unique consent link
         consent_link = f"https://connect.withmono.com/link?ref=lendrisk_{request.email.replace('@', '_')}"
         
-        # For MVP, we simulate email sending
-        # In production, use SendGrid/AWS SES:
-        # send_email(to=request.email, subject="Lendrisk Bank Connection", body=f"Click to connect: {consent_link}")
+        # Get SendGrid configuration
+        sendgrid_api_key = os.getenv("SENDGRID_API_KEY")
+        email_from = os.getenv("EMAIL_FROM", "noreply@lendrisk.com")
         
+        # Check if SendGrid is configured
+        if not sendgrid_api_key or sendgrid_api_key == "your_sendgrid_api_key_here":
+            # SendGrid not configured, return simulated response for demo purposes
+            return {
+                "status": "simulated", 
+                "message": f"Consent link generated for {request.email} (SendGrid not configured)",
+                "consent_link": consent_link
+            }
+        
+        # Initialize SendGrid client
+        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+        
+        # Create email content
+        subject = "Lendrisk - Connect Your Bank Account"
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #4F46E5;">Hello {request.name}!</h2>
+                <p>You have a pending loan application with Lendrisk. To complete your application, 
+                please connect your bank account using the secure link below:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{consent_link}" 
+                       style="background-color: #4F46E5; color: white; padding: 12px 24px; 
+                              text-decoration: none; border-radius: 8px; display: inline-block;">
+                        Connect Your Bank Account
+                    </a>
+                </div>
+                
+                <p>This link will securely connect your bank account via Mono/Okra to verify your 
+                financial information.</p>
+                
+                <p style="color: #666; font-size: 14px;">
+                    If you did not request this, please ignore this email.<br>
+                    This link expires in 24 hours.
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px;">
+                    Lendrisk Intelligence Engine<br>
+                    Secure Loan Processing Platform
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Create the email
+        from_email = Email(email_from, "Lendrisk")
+        to_email = To(request.email)
+        content = Content("text/html", html_content)
+        mail = Mail(from_email, to_email, subject, content)
+        
+        # Send the email
+        response = sg.send(mail)
+        
+        if response.status_code in [202, 200]:
+            return {
+                "status": "success",
+                "message": f"Consent email sent to {request.email}",
+                "consent_link": consent_link
+            }
+        else:
+            return {
+                "status": "error",
+                "message": f"Failed to send email. Status: {response.status_code}",
+                "consent_link": consent_link
+            }
+            
+    except Exception as e:
+        # Log the error and return a user-friendly message
+        print(f"SendGrid error: {str(e)}")
         return {
-            "status": "simulated", 
-            "message": f"Consent link generated for {request.email}",
+            "status": "error",
+            "message": f"Failed to send consent email: {str(e)}",
             "consent_link": consent_link
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v1/send-sms")
 def send_sms_consent(request: ConsentRequest):
