@@ -9,8 +9,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import List, Optional
 from twilio.rest import Client
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
+import resend
 
 # Append the ML engine folder to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -348,27 +347,27 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 @app.post("/api/v1/send-consent")
 def send_consent_email(request: ConsentRequest):
     """
-    Sends a consent email with bank connection link to the borrower using SendGrid.
+    Sends a consent email with bank connection link to the borrower using Resend.
     """
     try:
         # Generate a unique consent link
         consent_link = f"https://connect.withmono.com/link?ref=lendrisk_{request.email.replace('@', '_')}"
         
-        # Get SendGrid configuration
-        sendgrid_api_key = os.getenv("SENDGRID_API_KEY")
-        email_from = os.getenv("EMAIL_FROM", "noreply@lendrisk.com")
+        # Get Resend configuration
+        resend_api_key = os.getenv("RESEND_API_KEY")
+        email_from = os.getenv("EMAIL_FROM", "Lendrisk <onboarding@resend.dev>")
         
-        # Check if SendGrid is configured
-        if not sendgrid_api_key or sendgrid_api_key == "your_sendgrid_api_key_here":
-            # SendGrid not configured, return simulated response for demo purposes
+        # Check if Resend is configured
+        if not resend_api_key or resend_api_key == "your_resend_api_key_here":
+            # Resend not configured, return simulated response for demo purposes
             return {
                 "status": "simulated", 
-                "message": f"Consent link generated for {request.email} (SendGrid not configured)",
+                "message": f"Consent link generated for {request.email} (Resend not configured)",
                 "consent_link": consent_link
             }
         
-        # Initialize SendGrid client
-        sg = sendgrid.SendGridAPIClient(api_key=sendgrid_api_key)
+        # Configure Resend API key
+        resend.api_key = resend_api_key
         
         # Create email content
         subject = "Lendrisk - Connect Your Bank Account"
@@ -406,31 +405,34 @@ def send_consent_email(request: ConsentRequest):
         </html>
         """
         
-        # Create the email
-        from_email = Email(email_from, "Lendrisk")
-        to_email = To(request.email)
-        content = Content("text/html", html_content)
-        mail = Mail(from_email, to_email, subject, content)
+        # Send the email using Resend
+        params = {
+            "from": email_from,
+            "to": request.email,
+            "subject": subject,
+            "html": html_content
+        }
         
-        # Send the email
-        response = sg.send(mail)
+        email = resend.Emails.send(params)
         
-        if response.status_code in [202, 200]:
+        # Check if email was sent successfully
+        if email and not email.get('error'):
             return {
                 "status": "success",
                 "message": f"Consent email sent to {request.email}",
-                "consent_link": consent_link
+                "consent_link": consent_link,
+                "email_id": email.get('id')
             }
         else:
             return {
                 "status": "error",
-                "message": f"Failed to send email. Status: {response.status_code}",
+                "message": f"Failed to send email: {email.get('error', 'Unknown error')}",
                 "consent_link": consent_link
             }
             
     except Exception as e:
         # Log the error and return a user-friendly message
-        print(f"SendGrid error: {str(e)}")
+        print(f"Resend error: {str(e)}")
         return {
             "status": "error",
             "message": f"Failed to send consent email: {str(e)}",
