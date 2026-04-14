@@ -42,6 +42,18 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Lendrisk Intelligence API", version="1.2.0")
 
+@app.on_event("startup")
+def startup_event():
+    """Create default admin user on application startup."""
+    from api.database import SessionLocal
+    db = SessionLocal()
+    try:
+        create_default_admin(db)
+    except Exception as e:
+        print(f"Error creating default admin: {e}")
+    finally:
+        db.close()
+
 # Enable CORS for React Frontend
 app.add_middleware(
     CORSMiddleware,
@@ -139,7 +151,13 @@ def get_borrower_with_details(db: Session, borrower_id: str):
 @app.get("/")
 def health_check():
     # Create default admin user on startup
-    create_default_admin(next(get_db) if False else next(get_db))
+    db = next(get_db())
+    try:
+        create_default_admin(db)
+    except Exception as e:
+        print(f"Error creating default admin: {e}")
+    finally:
+        db.close()
     return {"status": "ok", "service": "Lendrisk Intelligence Engine Connected to DB"}
 
 
