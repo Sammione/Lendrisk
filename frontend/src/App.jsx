@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Sparkles,
   TrendingUp,
-  Zap
+  Zap,
+  User
 } from 'lucide-react';
 import BorrowerProfile from './components/BorrowerProfile';
 import GlobalPulse from './components/GlobalPulse';
@@ -21,6 +22,8 @@ import OnboardingModal from './components/OnboardingModal';
 import LoanManagement from './components/LoanManagement';
 import SystemConfig from './components/SystemConfig';
 import ConnectBank from './pages/ConnectBank';
+import Login from './pages/Login';
+import { useAuth } from './context/AuthContext';
 import './styles/index.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -49,10 +52,35 @@ const itemVariants = {
   }
 };
 
+// Protected Route wrapper
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mx-auto" />
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
 const App = () => {
+  const { user, logout, isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [selectedBorrowerId, setSelectedBorrowerId] = useState(null);
   const [alertCount, setAlertCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +88,12 @@ const App = () => {
 
   const fetchAlertCount = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/alerts?resolved=false`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/v1/alerts?resolved=false`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       if (data.status === 'success') {
         setAlertCount(data.data.length);
@@ -72,7 +105,9 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchAlertCount();
+    if (isAuthenticated()) {
+      fetchAlertCount();
+    }
   }, []);
 
   const handleViewProfile = (borrowerId) => {
@@ -87,6 +122,11 @@ const App = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const navItems = [
     { id: 'dashboard', icon: Activity, label: 'Overview', badge: null },
     { id: 'profile', icon: Users, label: 'Borrowers', badge: null },
@@ -95,261 +135,273 @@ const App = () => {
     { id: 'config', icon: Settings, label: 'Settings', badge: null }
   ];
 
-  if (!isAuthenticated) {
+  // Loading state
+  if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950 relative overflow-hidden">
-        {/* Animated background */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mx-auto" />
+          <p className="text-slate-400">Loading...</p>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 text-center space-y-8 p-12"
-        >
-          <motion.div
-            className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-2xl shadow-indigo-500/40"
-            animate={{
-              boxShadow: ['0 0 40px rgba(99,102,241,0.3)', '0 0 60px rgba(99,102,241,0.5)', '0 0 40px rgba(99,102,241,0.3)']
-            }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            <ShieldCheck size={48} className="text-white" />
-          </motion.div>
-
-          <div className="space-y-4">
-            <h2 className="text-4xl font-black font-display text-white tracking-tight">Session Ended</h2>
-            <p className="text-slate-400 text-lg">Your session has been securely terminated.</p>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsAuthenticated(true)}
-            className="btn-primary px-8 py-4 text-lg"
-          >
-            Sign In Again
-          </motion.button>
-        </motion.div>
       </div>
     );
   }
 
   return (
     <Routes>
-      {/* Connect Bank Page - standalone, no sidebar */}
+      {/* Public routes */}
+      <Route path="/login" element={<Login />} />
       <Route path="/connect-bank" element={<ConnectBank />} />
 
-      {/* Main Dashboard - with sidebar */}
+      {/* Protected routes */}
       <Route path="*" element={
-        <motion.div
-          className="dashboard-container"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Sidebar */}
-          <motion.aside
-            className="sidebar"
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            {/* Logo */}
-            <motion.div
-              className="flex items-center gap-3 mb-10 px-2"
-              whileHover={{ scale: 1.02 }}
-            >
-              <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                  <Zap size={20} className="text-white" />
-                </div>
-                <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur-sm -z-10" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black font-display text-white tracking-tight">
-                  Lend<span className="text-gradient">risk</span>
-                </h1>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest">Intelligence</p>
-              </div>
-            </motion.div>
-
-            {/* Navigation */}
-            <nav className="flex-1 space-y-1">
-              {navItems.map((item, index) => (
-                <NavItem
-                  key={item.id}
-                  icon={item.icon}
-                  label={item.label}
-                  badge={item.badge}
-                  active={activeTab === item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    if (item.id !== 'profile') setSelectedBorrowerId(null);
-                  }}
-                  delay={index * 0.05}
-                />
-              ))}
-            </nav>
-
-            {/* User Section */}
-            <div className="pt-6 mt-6 border-t border-slate-800/50">
-              <motion.button
-                whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                onClick={() => setIsAuthenticated(false)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <LogOut size={18} />
-                <span className="text-sm font-medium">Sign Out</span>
-              </motion.button>
-            </div>
-          </motion.aside>
-
-          {/* Main Content */}
-          <main className="main-content">
-            {/* Header */}
-            <motion.header
-              className="flex justify-between items-center mb-8"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              {/* Search */}
-              <motion.div
-                className={`relative transition-all duration-300 ${isSearchFocused ? 'w-[500px]' : 'w-96'}`}
-                layout
-              >
-                <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isSearchFocused ? 'text-indigo-400' : 'text-slate-500'}`}>
-                  <Search size={18} />
-                </div>
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSearch(searchQuery);
-                  }}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
-                  className="input-premium pl-12 pr-4 py-3"
-                  placeholder="Search borrowers by ID, name, or phone..."
-                />
-                {isSearchFocused && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500"
-                  >
-                    Press Enter to search
-                  </motion.div>
-                )}
-              </motion.div>
-
-              {/* Right Side */}
-              <div className="flex items-center gap-6">
-                {/* Notifications */}
-                <motion.button
-                  className="relative p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab('alerts')}
-                >
-                  <Bell size={20} className="text-slate-400" />
-                  {alertCount > 0 && (
-                    <span className="notification-badge">
-                      {alertCount > 9 ? '9+' : alertCount}
-                    </span>
-                  )}
-                </motion.button>
-
-                {/* User Profile */}
-                <div className="flex items-center gap-4 pl-6 border-l border-slate-800/50">
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-white uppercase tracking-tighter">Loan Officer</p>
-                    <p className="text-[10px] text-slate-500">M-PESA Branch #09</p>
-                  </div>
-                  <motion.div
-                    className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 p-0.5"
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    <div className="w-full h-full rounded-xl bg-slate-900 flex items-center justify-center font-bold text-xs uppercase text-white">
-                      BA
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.header>
-
-            {/* Content Area */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <AnimatePresence mode="wait">
-                {activeTab === 'dashboard' ? (
-                  <motion.div key="dashboard" variants={itemVariants}>
-                    <GlobalPulse
-                      onAddBorrower={() => setIsModalOpen(true)}
-                      onViewProfile={handleViewProfile}
-                    />
-                  </motion.div>
-                ) : activeTab === 'profile' ? (
-                  <motion.div key="profile" variants={itemVariants}>
-                    <BorrowerProfile borrowerId={selectedBorrowerId} />
-                  </motion.div>
-                ) : activeTab === 'loans' ? (
-                  <motion.div key="loans" variants={itemVariants}>
-                    <LoanManagement />
-                  </motion.div>
-                ) : activeTab === 'alerts' ? (
-                  <motion.div key="alerts" variants={itemVariants}>
-                    <AlertCenter onViewBorrower={handleViewProfile} />
-                  </motion.div>
-                ) : activeTab === 'config' ? (
-                  <motion.div key="config" variants={itemVariants}>
-                    <SystemConfig />
-                  </motion.div>
-                ) : (
-                  <motion.div key="empty" className="h-96 flex flex-col items-center justify-center text-slate-500 space-y-6" variants={itemVariants}>
-                    <motion.div
-                      animate={{
-                        rotate: [0, 10, -10, 0],
-                        scale: [1, 1.1, 1]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Activity size={64} className="opacity-20" />
-                    </motion.div>
-                    <div className="text-center">
-                      <p className="font-display text-2xl font-bold text-slate-400">Coming Soon</p>
-                      <p className="text-sm text-slate-600 mt-2">This module is under active development.</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Onboarding Modal */}
-            <OnboardingModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onComplete={(data) => {
-                setIsModalOpen(false);
-                if (data && data.borrower_id) {
-                  setSelectedBorrowerId(data.borrower_id);
-                  setActiveTab('profile');
-                } else {
-                  setActiveTab('dashboard');
-                }
-              }}
-            />
-          </main>
-        </motion.div>
+        <ProtectedRoute>
+          <DashboardLayout
+            user={user}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isModalOpen={isModalOpen}
+            setIsModalOpen={setIsModalOpen}
+            selectedBorrowerId={selectedBorrowerId}
+            setSelectedBorrowerId={setSelectedBorrowerId}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            isSearchFocused={isSearchFocused}
+            setIsSearchFocused={setIsSearchFocused}
+            alertCount={alertCount}
+            handleViewProfile={handleViewProfile}
+            handleSearch={handleSearch}
+            handleLogout={handleLogout}
+            navItems={navItems}
+            containerVariants={containerVariants}
+            itemVariants={itemVariants}
+          />
+        </ProtectedRoute>
       } />
     </Routes>
+  );
+};
+
+// Dashboard Layout Component
+const DashboardLayout = ({
+  user,
+  activeTab,
+  setActiveTab,
+  isModalOpen,
+  setIsModalOpen,
+  selectedBorrowerId,
+  setSelectedBorrowerId,
+  searchQuery,
+  setSearchQuery,
+  isSearchFocused,
+  setIsSearchFocused,
+  alertCount,
+  handleViewProfile,
+  handleSearch,
+  handleLogout,
+  navItems,
+  containerVariants,
+  itemVariants
+}) => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+  return (
+    <motion.div
+      className="dashboard-container"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Sidebar */}
+      <motion.aside
+        className="sidebar"
+        initial={{ x: -50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        {/* Logo */}
+        <motion.div
+          className="flex items-center gap-3 mb-10 px-2"
+          whileHover={{ scale: 1.02 }}
+        >
+          <div className="relative">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+              <Zap size={20} className="text-white" />
+            </div>
+            <div className="absolute -inset-1 bg-indigo-500/20 rounded-xl blur-sm -z-10" />
+          </div>
+          <div>
+            <h1 className="text-xl font-black font-display text-white tracking-tight">
+              Lend<span className="text-gradient">risk</span>
+            </h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">Intelligence</p>
+          </div>
+        </motion.div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1">
+          {navItems.map((item, index) => (
+            <NavItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              badge={item.badge}
+              active={activeTab === item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                if (item.id !== 'profile') setSelectedBorrowerId(null);
+              }}
+              delay={index * 0.05}
+            />
+          ))}
+        </nav>
+
+        {/* User Section */}
+        <div className="pt-6 mt-6 border-t border-slate-800/50">
+          <div className="flex items-center gap-3 px-4 py-3 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+              <User size={16} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+              <p className="text-[10px] text-slate-500 capitalize">{user?.role?.replace('_', ' ') || 'Loan Officer'}</p>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <LogOut size={18} />
+            <span className="text-sm font-medium">Sign Out</span>
+          </motion.button>
+        </div>
+      </motion.aside>
+
+      {/* Main Content */}
+      <main className="main-content">
+        {/* Header */}
+        <motion.header
+          className="flex justify-between items-center mb-8"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          {/* Search */}
+          <motion.div
+            className={`relative transition-all duration-300 ${isSearchFocused ? 'w-[500px]' : 'w-96'}`}
+            layout
+          >
+            <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isSearchFocused ? 'text-indigo-400' : 'text-slate-500'}`}>
+              <Search size={18} />
+            </div>
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch(searchQuery);
+              }}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              className="input-premium pl-12 pr-4 py-3"
+              placeholder="Search borrowers by ID, name, or phone..."
+            />
+            {isSearchFocused && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-500"
+              >
+                Press Enter to search
+              </motion.div>
+            )}
+          </motion.div>
+
+          {/* Right Side */}
+          <div className="flex items-center gap-6">
+            {/* Notifications */}
+            <motion.button
+              className="relative p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors border border-slate-700/50"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveTab('alerts')}
+            >
+              <Bell size={20} className="text-slate-400" />
+              {alertCount > 0 && (
+                <span className="notification-badge">
+                  {alertCount > 9 ? '9+' : alertCount}
+                </span>
+              )}
+            </motion.button>
+          </div>
+        </motion.header>
+
+        {/* Content Area */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' ? (
+              <motion.div key="dashboard" variants={itemVariants}>
+                <GlobalPulse
+                  onAddBorrower={() => setIsModalOpen(true)}
+                  onViewProfile={handleViewProfile}
+                />
+              </motion.div>
+            ) : activeTab === 'profile' ? (
+              <motion.div key="profile" variants={itemVariants}>
+                <BorrowerProfile borrowerId={selectedBorrowerId} />
+              </motion.div>
+            ) : activeTab === 'loans' ? (
+              <motion.div key="loans" variants={itemVariants}>
+                <LoanManagement />
+              </motion.div>
+            ) : activeTab === 'alerts' ? (
+              <motion.div key="alerts" variants={itemVariants}>
+                <AlertCenter onViewBorrower={handleViewProfile} />
+              </motion.div>
+            ) : activeTab === 'config' ? (
+              <motion.div key="config" variants={itemVariants}>
+                <SystemConfig />
+              </motion.div>
+            ) : (
+              <motion.div key="empty" className="h-96 flex flex-col items-center justify-center text-slate-500 space-y-6" variants={itemVariants}>
+                <motion.div
+                  animate={{
+                    rotate: [0, 10, -10, 0],
+                    scale: [1, 1.1, 1]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Activity size={64} className="opacity-20" />
+                </motion.div>
+                <div className="text-center">
+                  <p className="font-display text-2xl font-bold text-slate-400">Coming Soon</p>
+                  <p className="text-sm text-slate-600 mt-2">This module is under active development.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Onboarding Modal */}
+        <OnboardingModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onComplete={(data) => {
+            setIsModalOpen(false);
+            if (data && data.borrower_id) {
+              setSelectedBorrowerId(data.borrower_id);
+              setActiveTab('profile');
+            } else {
+              setActiveTab('dashboard');
+            }
+          }}
+        />
+      </main>
+    </motion.div>
   );
 };
 
@@ -385,11 +437,17 @@ const NavItem = ({ icon: Icon, label, badge, active, onClick, delay }) => (
 const AlertCenter = ({ onViewBorrower }) => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/v1/alerts?resolved=false`);
+        const response = await fetch(`${API_URL}/api/v1/alerts?resolved=false`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const data = await response.json();
         if (data.status === 'success') {
           setAlerts(data.data);
@@ -411,7 +469,12 @@ const AlertCenter = ({ onViewBorrower }) => {
 
   const handleResolveAlert = async (alertId) => {
     try {
-      await fetch(`${API_URL}/api/v1/alerts/${alertId}/resolve`, { method: 'POST' });
+      await fetch(`${API_URL}/api/v1/alerts/${alertId}/resolve`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       setAlerts(alerts.filter(a => a.id !== alertId));
     } catch (err) {
       console.error('Error resolving alert:', err);

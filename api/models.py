@@ -3,6 +3,37 @@ from sqlalchemy.orm import relationship
 import datetime
 from .database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    role = Column(String, default="loan_officer")  # admin, loan_officer, viewer
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_login = Column(DateTime, nullable=True)
+
+    # Relationships
+    audit_logs = relationship("AuditLog", back_populates="user")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"))
+    action = Column(String, nullable=False)  # login, logout, create_borrower, etc.
+    resource = Column(String, nullable=True)  # borrower, loan, alert, etc.
+    resource_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="audit_logs")
+
+
 class Borrower(Base):
     __tablename__ = "borrowers"
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
@@ -17,6 +17,20 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from api.database import get_db, engine, Base
 from api import models
 from api.openbanking import OpenBankingService
+from api.auth import (
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    get_current_active_user,
+    get_current_admin_user,
+    get_password_hash,
+    create_default_admin,
+    Token,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
 from ml_engine.features import BorrowerFeatureEngineer
 from ml_engine.model import RiskScoringModel
 from ml_engine.explainability import RiskExplainerLLM
@@ -124,7 +138,139 @@ def get_borrower_with_details(db: Session, borrower_id: str):
 
 @app.get("/")
 def health_check():
+    # Create default admin user on startup
+    create_default_admin(next(get_db) if False else next(get_db))
     return {"status": "ok", "service": "Lendrisk Intelligence Engine Connected to DB"}
+
+
+# --- Authentication Endpoints ---
+
+@app.post("/api/v1/auth/login", response_model=Token)
+def login(request: Request, user_login: UserLogin, db: Session = Depends(get_db)):
+    """Authenticate user and return JWT token."""
+    user = authenticate_user(db, user_login.email, user_login.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Update last login
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email, "role": user.role},
+        expires_delta=access_token_expires
+    )
+    
+    # Log the login
+    audit_log = models.AuditLog(
+        user_id=user.id,
+        action="login",
+        resource="auth",
+        ip_address=request.client.host,
+        details=f"User {user.email} logged in"
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role
+        }
+    }
+
+
+@app.post("/api/v1/auth/register")
+def register(request: Request, user_create: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user (admin only)."""
+    # Check if user already exists
+    existing_user = db.query(models.User).filter(models.User.email == user_create.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create new user
+    user_id = f"USR-{str(uuid4())[:8].upper()}"
+    user = models.User(
+        id=user_id,
+        email=user_create.email,
+        password_hash=get_password_hash(user_create.password),
+        name=user_create.name,
+        role=user_create.role,
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+    
+    # Log the registration
+    audit_log = models.AuditLog(
+        user_id=user.id,
+        action="register",
+        resource="user",
+        resource_id=user.id,
+        ip_address=request.client.host,
+        details=f"User {user.email} registered as {user.role}"
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": f"User {user.email} created successfully",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "role": user.role
+        }
+    }
+
+
+@app.get("/api/v1/auth/me", response_model=UserResponse)
+def get_current_user_info(current_user: models.User = Depends(get_current_active_user)):
+    """Get current user information."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "role": current_user.role,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None
+    }
+
+
+@app.get("/api/v1/auth/users")
+def list_users(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin_user)
+):
+    """List all users (admin only)."""
+    users = db.query(models.User).all()
+    return {
+        "status": "success",
+        "data": [{
+            "id": u.id,
+            "email": u.email,
+            "name": u.name,
+            "role": u.role,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "last_login": u.last_login.isoformat() if u.last_login else None
+        } for u in users]
+    }
+
 
 @app.get("/api/v1/dashboard")
 def get_dashboard_stats(db: Session = Depends(get_db)):
